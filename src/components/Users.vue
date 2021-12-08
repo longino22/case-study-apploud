@@ -2,7 +2,7 @@
     <form @submit.prevent>
         <label>Enter group id: </label>
         <input placeholder="example" v-model="submittedID" />
-        <button name="Show users" @click="clearPreviousEntry(), connectData()">
+        <button name="Show users" @click="clearPreviousEntry(), runRequests()">
             Show users
         </button>
     </form>
@@ -12,10 +12,10 @@
             <div>
                 <u>Groups</u>:
                 <span v-if="groupInformation[index]"
-                    >{{ groupInformation[index].full_path }}
+                    >[{{ groupInformation[index].full_path }}
                 </span>
                 <span v-if="userInformation[index]">
-                    ({{ getAccess(userInformation[index].access_level) }})
+                    ({{ getAccess(userInformation[index].access_level) }})]
                 </span>
             </div>
             <div>
@@ -23,8 +23,14 @@
                 <span
                     v-for="project in userProjects[index]"
                     v-bind:key="project.id"
-                    >{{ project.path }}</span
+                    >[{{ project.path }}</span
                 >
+                <span
+                    v-for="detail in projectDetails[index]"
+                    v-bind:key="detail.id"
+                >
+                    ({{ getAccess(detail.access_level) }})]
+                </span>
             </div>
         </li>
     </ul>
@@ -41,6 +47,7 @@ export default {
             groupInformation: [],
             userInformation: [],
             userProjects: [],
+            projectDetails: [],
             firstName: null,
             lastName: null,
             hasRequested: false,
@@ -50,7 +57,7 @@ export default {
         /*
             1. GET all members (2) under SUBMITTED (top-level) group information
                 & save to an array as userInformation
-            2. GET all subgroups (3) under submitted (top-level) group
+            2. GET all subgroups (3) under SUBMITTED (top-level) group
                 & save to an array as groupInformation
             3. GET all members (2) under SUBGROUPS
                 & push to an array groupInformation
@@ -61,7 +68,7 @@ export default {
             to load only 10 projects, groups, users per page. This would speed up
             the request.
         */
-        async connectData() {
+        async runRequests() {
             try {
                 await this.getUsers(this.submittedID);
                 await this.getSubgroups();
@@ -70,6 +77,17 @@ export default {
                 }
                 for (const user of this.userInformation) {
                     await this.getProjects(user.id);
+                }
+                for (let i = 0; i < this.userProjects.length; i++) {
+                    if (this.userProjects[i].length == 0) {
+                        this.projectDetails.push([]);
+                    } else {
+                        for (let j = 0; j < this.userProjects[i].length; j++) {
+                            await this.getProjectsAccess(
+                                this.userProjects[i][j].id
+                            );
+                        }
+                    }
                 }
                 this.hasRequested = true;
             } catch (error) {
@@ -109,6 +127,17 @@ export default {
                 );
                 console.log(projectsResponse.data);
                 this.userProjects.push(projectsResponse.data);
+            } catch (error) {
+                console.log(error.message);
+            }
+        },
+        async getProjectsAccess(project_id) {
+            try {
+                let accessResponse = await gitlabAPI.get(
+                    `/projects/${project_id}/members`
+                );
+                console.log(accessResponse.data);
+                this.projectDetails.push(accessResponse.data);
             } catch (error) {
                 console.log(error.message);
             }
