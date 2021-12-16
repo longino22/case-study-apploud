@@ -143,18 +143,18 @@ export default {
             }
         },
         getAccess(access_code) {
-            switch (true) {
-                case access_code == 0:
+            switch (access_code) {
+                case 0:
                     return "No access";
-                case access_code == 5:
+                case 5:
                     return "Minimal access";
-                case access_code == 10:
+                case 10:
                     return "Reporter";
-                case access_code == 30:
+                case 30:
                     return "Developer";
-                case access_code == 40:
+                case 40:
                     return "Maintainer";
-                case access_code == 50:
+                case 50:
                     return "Owner";
             }
         },
